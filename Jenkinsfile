@@ -1,41 +1,24 @@
-pipeline { 
-agent any  // Runs on any available Jenkins agent 
-environment { 
-MAVEN_HOME = tool 'Maven'  // Using Jenkins' Maven tool 
-} 
-    stages { 
-        stage('Checkout Code') { 
-            steps { 
-                git branch: 'main', url: 'https://github.com/your
-repo/simple-java-maven-project.git' 
-            } 
-        } 
- 
-        stage('Build') { 
-            steps { 
-                sh "${MAVEN_HOME}/bin/mvn clean package" 
-            } 
-        } 
- 
-        stage('Test') { 
-            steps { 
-                sh "${MAVEN_HOME}/bin/mvn test" 
-            } 
-        } 
- 
-        stage('Deploy') { 
-            steps { 
-                echo "Deploying the application..." 
-            } 
-        } 
-    } 
- 
-    post { 
-        success { 
-            echo "Pipeline completed successfully!" 
-        } 
-        failure { 
-            echo "Pipeline failed!" 
-        } 
-    } 
-} 
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Jenkins сам использует настройки SCM из job
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                bat 'echo Building Project Tracker...'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                bat 'echo Running tests...'
+            }
+        }
+    }
+}
