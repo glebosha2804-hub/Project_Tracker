@@ -4,7 +4,7 @@ pipeline {
     environment {
         // SonarScanner из Global Tool Configuration (Name = SonarScanner)
         SONAR_SCANNER_HOME = tool 'SonarScanner'
-        // токен SonarCloud, сохранённый в Jenkins Credentials c ID = sonarcloud-token
+        // токен SonarCloud в Jenkins Credentials (ID = sonarcloud-token)
         SONAR_TOKEN = credentials('sonarcloud-token')
     }
 
@@ -17,22 +17,38 @@ pipeline {
 
         stage('Build') {
             steps {
-                // создаём папку bin внутри проекта TaskTracker, если её нет
+                // создаём папку bin внутри TaskTracker
                 bat 'if not exist TaskTracker\\bin mkdir TaskTracker\\bin'
-                // компилируем все классы из пакета tasktracker
+                // компилируем все исходники пакета tasktracker
                 bat 'javac -d TaskTracker\\bin TaskTracker\\src\\tasktracker\\*.java'
+
+                // собираем простой JAR из скомпилированных классов
+                // JAR будет лежать в TaskTracker\\TaskTracker.jar
+                bat 'jar cf TaskTracker\\TaskTracker.jar -C TaskTracker\\bin .'
             }
         }
 
         stage('SonarCloud Analysis') {
             steps {
-                bat "\"%SONAR_SCANNER_HOME%\\bin\\sonar-scanner.bat\" " +
-                    "-D\"sonar.organization=glebosha2804-hub\" " +
-                    "-D\"sonar.projectKey=glebosha2804-hub_Project_Tracker\" " +
-                    "-D\"sonar.host.url=https://sonarcloud.io\" " +
-                    "-D\"sonar.sources=TaskTracker/src\" " +
-                    "-D\"sonar.java.binaries=TaskTracker/bin\" " +
-                    "-D\"sonar.login=%SONAR_TOKEN%\""
+                // запускаем SonarScanner под конфигурацией сервера SonarCloud
+                withSonarQubeEnv('SonarCloud') {
+                    bat "\"%SONAR_SCANNER_HOME%\\bin\\sonar-scanner.bat\" " +
+                        "-D\"sonar.organization=glebosha2804-hub\" " +
+                        "-D\"sonar.projectKey=glebosha2804-hub_Project_Tracker\" " +
+                        "-D\"sonar.host.url=https://sonarcloud.io\" " +
+                        "-D\"sonar.sources=TaskTracker/src\" " +
+                        "-D\"sonar.java.binaries=TaskTracker/bin\" " +
+                        "-D\"sonar.login=%SONAR_TOKEN%\""
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                // ждём, пока SonarCloud закончит анализ и вернёт статус quality gate
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
     }
