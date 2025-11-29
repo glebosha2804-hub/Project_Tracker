@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         SONAR_SCANNER_HOME = tool 'SonarScanner'
-        SONAR_TOKEN = credentials('sonar-token')
+        SONAR_TOKEN = credentials('sonarcloud-token')
+
     }
 
     stages {
