@@ -2,13 +2,16 @@ pipeline {
     agent any
 
     environment {
-        // SonarScanner из Global Tool Configuration (Name = SonarScanner)
+        // Имя тулзы SonarScanner из "Manage Jenkins → Tools"
         SONAR_SCANNER_HOME = tool 'SonarScanner'
-        // токен SonarCloud, сохранённый в Jenkins Credentials c ID = sonarcloud-token
-        SONAR_TOKEN = credentials('sonarcloud-token')
+
+        // Секрет с токеном SonarCloud (Тип: Secret text, ID: sonar-token)
+        // Если у тебя другой ID — просто поменяй здесь.
+        SONAR_TOKEN = credentials('sonar-token')
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -17,22 +20,43 @@ pipeline {
 
         stage('Build') {
             steps {
-                // создаём папку bin внутри проекта TaskTracker, если её нет
-                bat 'if not exist TaskTracker\\bin mkdir TaskTracker\\bin'
-                // компилируем все классы из пакета tasktracker
-                bat 'javac -d TaskTracker\\bin TaskTracker\\src\\tasktracker\\*.java'
+                dir('TaskTracker') {
+                    bat '''
+                    if not exist bin mkdir bin
+                    javac -d bin src\\tasktracker\\*.java
+                    '''
+                }
+            }
+        }
+
+        stage('Tests & Coverage') {
+            steps {
+                dir('TaskTracker') {
+                    bat '''
+                    rem === подготовка папок для отчётов ===
+                    if not exist reports mkdir reports
+                    if not exist reports\\junit mkdir reports\\junit
+                    if not exist reports\\jacoco mkdir reports\\jacoco
+
+                    rem === запуск JUnit 5 через консоль раннер
+                    rem     + подключение JaCoCo агентом ===
+                    java ^
+                      -javaagent:lib\\Jacoco\\org.jacoco.agent-0.8.11.jar=destfile=reports\\jacoco\\jacoco.exec ^
+                      -jar lib\\Junit\\junit-platform-console-standalone-1.10.2.jar ^
+                      --class-path bin ^
+                      --scan-class-path ^
+                      --reports-dir=reports\\junit
+                    '''
+                }
             }
         }
 
         stage('SonarCloud Analysis') {
             steps {
-                bat "\"%SONAR_SCANNER_HOME%\\bin\\sonar-scanner.bat\" " +
-                    "-D\"sonar.organization=glebosha2804-hub\" " +
-                    "-D\"sonar.projectKey=glebosha2804-hub_Project_Tracker\" " +
-                    "-D\"sonar.host.url=https://sonarcloud.io\" " +
-                    "-D\"sonar.sources=TaskTracker/src\" " +
-                    "-D\"sonar.java.binaries=TaskTracker/bin\" " +
-                    "-D\"sonar.login=%SONAR_TOKEN%\""
+                bat '''
+                "%SONAR_SCANNER_HOME%\\bin\\sonar-scanner.bat" ^
+                  -D"sonar.login=%SONAR_TOKEN%"
+                '''
             }
         }
     }
