@@ -2,14 +2,13 @@ pipeline {
     agent any
 
     environment {
-    SONAR_SCANNER_HOME = tool 'SonarScanner'
-    SONAR_TOKEN = credentials('sonarcloud-token')
-}
-
+        // Установка SonarScanner'а по имени из Manage Jenkins → Tools
+        SONAR_SCANNER_HOME = tool 'SonarScanner'
+        // Токен SonarCloud (ID учётки в Jenkins: sonarcloud-token)
+        SONAR_TOKEN = credentials('sonarcloud-token')
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -27,23 +26,15 @@ pipeline {
             }
         }
 
-        stage('Tests & Coverage') {
+        stage('Tests') {
             steps {
                 dir('TaskTracker') {
                     bat '''
-                    rem === подготовка папок для отчётов ===
-                    if not exist reports mkdir reports
-                    if not exist reports\\junit mkdir reports\\junit
-                    if not exist reports\\jacoco mkdir reports\\jacoco
-
-                    rem === запуск JUnit 5 через консоль раннер
-                    rem     + подключение JaCoCo агентом ===
-                    java ^
-                      -javaagent:lib\\Jacoco\\org.jacoco.agent-0.8.11.jar=destfile=reports\\jacoco\\jacoco.exec ^
-                      -jar lib\\Junit\\junit-platform-console-standalone-1.10.2.jar ^
-                      --class-path bin ^
-                      --scan-class-path ^
-                      --reports-dir=reports\\junit
+                    cd bin
+                    java -jar ..\\lib\\junit-platform-console-standalone-1.10.2.jar ^
+                      -cp . ^
+                      -scan-class-path ^
+                      --include-classname=.*Test
                     '''
                 }
             }
@@ -51,10 +42,16 @@ pipeline {
 
         stage('SonarCloud Analysis') {
             steps {
-                bat '''
-                "%SONAR_SCANNER_HOME%\\bin\\sonar-scanner.bat" ^
-                  -D"sonar.login=%SONAR_TOKEN%"
-                '''
+                dir('TaskTracker') {
+                    bat """
+                    "%SONAR_SCANNER_HOME%\\bin\\sonar-scanner.bat" ^
+                      -Dsonar.organization=glebosha2804-hub ^
+                      -Dsonar.projectKey=glebosha2804-hub_Project_Tracker ^
+                      -Dsonar.sources=TaskTracker/src ^
+                      -Dsonar.java.binaries=TaskTracker/bin ^
+                      -Dsonar.login=%SONAR_TOKEN%
+                    """
+                }
             }
         }
     }
