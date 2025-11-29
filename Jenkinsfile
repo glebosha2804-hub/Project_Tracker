@@ -2,13 +2,12 @@ pipeline {
     agent any
 
     environment {
-        // SonarScanner из Manage Jenkins → Global Tool Configuration
+        // Имя SonarScanner из Manage Jenkins -> Tools
         SONAR_SCANNER_HOME = tool 'SonarScanner'
-        // Твой Secret text с токеном SonarCloud (ID: sonar-token)
-        SONAR_TOKEN = credentials('sonar-token')
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -19,23 +18,37 @@ pipeline {
             steps {
                 dir('TaskTracker') {
                     bat '''
-                        if not exist bin mkdir bin
-                        javac -cp ".;lib\\junit-platform-console-standalone-1.10.2.jar" -d bin src\\tasktracker\\*.java
+                    if not exist bin mkdir bin
+                    javac -cp ".;lib\\junit-platform-console-standalone-1.10.2.jar" -d bin src\\tasktracker\\*.java
                     '''
                 }
             }
         }
 
-        stage('Tests') {
+        stage('Tests with Coverage') {
             steps {
                 dir('TaskTracker') {
                     bat '''
-                        cd bin
-                        java ^
-                          -jar ..\\lib\\junit-platform-console-standalone-1.10.2.jar ^
-                          -cp . ^
-                          -scan-class-path ^
-                          --include-classname=.*Test
+                    cd bin
+                    java ^
+                      -javaagent:..\\lib\\org.jacoco.agent-0.8.11.jar=destfile=..\\jacoco.exec ^
+                      -jar ..\\lib\\junit-platform-console-standalone-1.10.2.jar ^
+                      -cp . ^
+                      -scan-class-path ^
+                      --include-classname=.*Test
+                    '''
+                }
+            }
+        }
+
+        stage('Generate JaCoCo XML') {
+            steps {
+                dir('TaskTracker') {
+                    bat '''
+                    java -jar lib\\org.jacoco.cli-0.8.11.jar report jacoco.exec ^
+                      --classfiles bin ^
+                      --sourcefiles src ^
+                      --xml jacoco.xml
                     '''
                 }
             }
@@ -43,15 +56,18 @@ pipeline {
 
         stage('SonarCloud Analysis') {
             steps {
-                dir('TaskTracker') {
-                    bat '''
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    dir('TaskTracker') {
+                        bat '''
                         "%SONAR_SCANNER_HOME%\\bin\\sonar-scanner.bat" ^
                           -Dsonar.organization=glebosha2804-hub ^
                           -Dsonar.projectKey=glebosha2804-hub_Project_Tracker ^
                           -Dsonar.sources=src ^
                           -Dsonar.java.binaries=bin ^
+                          -Dsonar.coverage.jacoco.xmlReportPaths=jacoco.xml ^
                           -Dsonar.token=%SONAR_TOKEN%
-                    '''
+                        '''
+                    }
                 }
             }
         }
