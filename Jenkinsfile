@@ -25,30 +25,15 @@ pipeline {
             }
         }
 
-        stage('Tests with Coverage') {
+        stage('Tests') {
             steps {
                 dir('TaskTracker') {
                     bat '''
                     cd bin
-                    java ^
-                      -javaagent:..\\lib\\org.jacoco.agent-0.8.11.jar=destfile=..\\jacoco.exec ^
-                      -jar ..\\lib\\junit-platform-console-standalone-1.10.2.jar ^
+                    java -jar ..\\lib\\junit-platform-console-standalone-1.10.2.jar ^
                       -cp . ^
                       -scan-class-path ^
                       --include-classname=.*Test
-                    '''
-                }
-            }
-        }
-
-        stage('Generate JaCoCo XML') {
-            steps {
-                dir('TaskTracker') {
-                    bat '''
-                    java -jar lib\\org.jacoco.cli-0.8.11.jar report jacoco.exec ^
-                      --classfiles bin ^
-                      --sourcefiles src ^
-                      --xml jacoco.xml
                     '''
                 }
             }
@@ -64,7 +49,6 @@ pipeline {
                           -Dsonar.projectKey=glebosha2804-hub_Project_Tracker ^
                           -Dsonar.sources=src ^
                           -Dsonar.java.binaries=bin ^
-                          -Dsonar.coverage.jacoco.xmlReportPaths=jacoco.xml ^
                           -Dsonar.token=%SONAR_TOKEN%
                         '''
                     }
