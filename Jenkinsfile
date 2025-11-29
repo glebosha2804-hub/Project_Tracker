@@ -20,7 +20,7 @@ pipeline {
                 dir('TaskTracker') {
                     bat '''
                     if not exist bin mkdir bin
-                    javac -d bin src\\tasktracker\\*.java
+                    javac -cp ".;lib\\junit-platform-console-standalone-1.10.2.jar" -d bin src\\tasktracker\\*.java
                     '''
                 }
             }
