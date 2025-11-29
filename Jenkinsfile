@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        // Установка SonarScanner'а по имени из Manage Jenkins → Tools
+        // SonarScanner из Manage Jenkins → Tools
         SONAR_SCANNER_HOME = tool 'SonarScanner'
-        // Токен SonarCloud (ID учётки в Jenkins: sonarcloud-token)
+        // Токен SonarCloud (ID кредов: sonarcloud-token)
         SONAR_TOKEN = credentials('sonarcloud-token')
     }
 
@@ -47,9 +47,9 @@ pipeline {
                     "%SONAR_SCANNER_HOME%\\bin\\sonar-scanner.bat" ^
                       -Dsonar.organization=glebosha2804-hub ^
                       -Dsonar.projectKey=glebosha2804-hub_Project_Tracker ^
-                      -Dsonar.sources=TaskTracker/src ^
-                      -Dsonar.java.binaries=TaskTracker/bin ^
-                      -Dsonar.login=%SONAR_TOKEN%
+                      -Dsonar.sources=src ^
+                      -Dsonar.java.binaries=bin ^
+                      -Dsonar.token=%SONAR_TOKEN%
                     """
                 }
             }
