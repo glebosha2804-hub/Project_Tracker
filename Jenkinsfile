@@ -2,15 +2,13 @@ pipeline {
     agent any
 
     environment {
-        // SonarScanner tool (Manage Jenkins → Tools → SonarScanner)
+        // SonarScanner из Manage Jenkins → Global Tool Configuration
         SONAR_SCANNER_HOME = tool 'SonarScanner'
-
-        // Secret text credential ID from Jenkins
-        SONAR_TOKEN = credentials('sonarcloud-token')
+        // Твой Secret text с токеном SonarCloud (ID: sonar-token)
+        SONAR_TOKEN = credentials('sonar-token')
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -28,13 +26,12 @@ pipeline {
             }
         }
 
-        stage('Tests with Coverage') {
+        stage('Tests') {
             steps {
                 dir('TaskTracker') {
                     bat '''
                         cd bin
                         java ^
-                          -javaagent:..\\lib\\Jacoco\\org.jacoco.agent-0.8.11.jar=destfile=..\\jacoco.exec ^
                           -jar ..\\lib\\junit-platform-console-standalone-1.10.2.jar ^
                           -cp . ^
                           -scan-class-path ^
@@ -44,31 +41,17 @@ pipeline {
             }
         }
 
-        stage('Generate JaCoCo XML') {
-            steps {
-                dir('TaskTracker') {
-                    bat '''
-                        java -jar lib\\Jacoco\\org.jacoco.cli-0.8.11.jar ^
-                          report jacoco.exec ^
-                          --classfiles bin ^
-                          --sourcefiles src ^
-                          --xml jacoco.xml ^
-                          --html jacoco-html
-                    '''
-                }
-            }
-        }
-
         stage('SonarCloud Analysis') {
             steps {
                 dir('TaskTracker') {
-                    bat "\"%SONAR_SCANNER_HOME%\\bin\\sonar-scanner.bat\" " +
-                        "-Dsonar.organization=glebosha2804-hub " +
-                        "-Dsonar.projectKey=glebosha2804-hub_Project_Tracker " +
-                        "-Dsonar.sources=src " +
-                        "-Dsonar.java.binaries=bin " +
-                        "-Dsonar.coverage.jacoco.xmlReportPaths=jacoco.xml " +
-                        "-Dsonar.token=%SONAR_TOKEN%"
+                    bat '''
+                        "%SONAR_SCANNER_HOME%\\bin\\sonar-scanner.bat" ^
+                          -Dsonar.organization=glebosha2804-hub ^
+                          -Dsonar.projectKey=glebosha2804-hub_Project_Tracker ^
+                          -Dsonar.sources=src ^
+                          -Dsonar.java.binaries=bin ^
+                          -Dsonar.token=%SONAR_TOKEN%
+                    '''
                 }
             }
         }
