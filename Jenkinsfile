@@ -2,12 +2,10 @@ pipeline {
     agent any
 
     environment {
-        // Имя тулзы SonarScanner из "Manage Jenkins → Tools"
-        SONAR_SCANNER_HOME = tool 'SonarScanner'
+    SONAR_SCANNER_HOME = tool 'SonarScanner'
+    SONAR_TOKEN = credentials('sonarcloud-token')
+}
 
-        // Секрет с токеном SonarCloud (Тип: Secret text, ID: sonar-token)
-        // Если у тебя другой ID — просто поменяй здесь.
-        SONAR_TOKEN = credentials('sonar-token')
     }
 
     stages {
